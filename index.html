@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cricket Match Scorer</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+    h1 { text-align: center; }
+    .config, .result { text-align: center; margin: 20px 0; }
+    .teams { display: flex; justify-content: space-around; margin-top: 30px; }
+    .team { border: 1px solid #000; padding: 20px; width: 45%; }
+    button { margin: 5px; padding: 10px 15px; font-size: 16px; cursor: pointer; border: none; border-radius: 5px; }
+    .run-btn { background-color: #ddd; }
+    .wicket-btn { background-color: #f44336; color: white; }
+    .big-hit { background-color: #4caf50; color: white; }
+    .wide-btn, .no-ball-btn { background-color: #ffeb3b; }
+    .hidden { display: none; }
+    h2 { text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>Cricket Match Scorer</h1>
+
+  <!-- Config -->
+  <div class="config" id="configArea">
+    <label>Max Overs: </label>
+    <input type="number" id="maxOvers" value="2" min="1" max="50" /> &nbsp;&nbsp;
+    <label>Max Wickets: </label>
+    <input type="number" id="maxWickets" value="2" min="1" max="10" />
+    <br><br>
+    <button id="startButton" class="run-btn">Start Match</button>
+  </div>
+
+  <!-- Scoreboard -->
+  <div class="teams hidden" id="teamsArea">
+    <!-- Team 1 -->
+    <div class="team">
+      <h2>Team 1</h2>
+      <p>Runs: <span id="runs1">0</span></p>
+      <p>Wickets: <span id="wickets1">0</span></p>
+      <p>Overs: <span id="overs1">0.0</span></p>
+      <div id="controls1">
+        <button onclick="addRun(0)" class="run-btn">0</button>
+        <button onclick="addRun(1)" class="run-btn">1</button>
+        <button onclick="addRun(2)" class="run-btn">2</button>
+        <button onclick="addRun(3)" class="run-btn">3</button>
+        <button onclick="addRun(4)" class="big-hit">4</button>
+        <button onclick="addRun(6)" class="big-hit">6</button>
+        <button onclick="addWide()" class="wide-btn">Wide</button>
+        <button onclick="addNoBall()" class="no-ball-btn">No Ball</button>
+        <button onclick="addWicket()" class="wicket-btn">Wicket</button>
+        <button onclick="undo()" class="run-btn">Undo</button>
+      </div>
+    </div>
+
+    <!-- Team 2 -->
+    <div class="team">
+      <h2>Team 2</h2>
+      <p>Runs: <span id="runs2">0</span></p>
+      <p>Wickets: <span id="wickets2">0</span></p>
+      <p>Overs: <span id="overs2">0.0</span></p>
+      <div id="controls2">
+        <button onclick="addRun(0)" class="run-btn">0</button>
+        <button onclick="addRun(1)" class="run-btn">1</button>
+        <button onclick="addRun(2)" class="run-btn">2</button>
+        <button onclick="addRun(3)" class="run-btn">3</button>
+        <button onclick="addRun(4)" class="big-hit">4</button>
+        <button onclick="addRun(6)" class="big-hit">6</button>
+        <button onclick="addWide()" class="wide-btn">Wide</button>
+        <button onclick="addNoBall()" class="no-ball-btn">No Ball</button>
+        <button onclick="addWicket()" class="wicket-btn">Wicket</button>
+        <button onclick="undo()" class="run-btn">Undo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result hidden" id="resultArea">
+    <h2 id="resultText"></h2>
+    <button onclick="resetMatch()" class="run-btn">Play Again</button>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    let currentTeam = 1;
+
+    let team1 = { runs: 0, wickets: 0, balls: 0, history: [] };
+    let team2 = { runs: 0, wickets: 0, balls: 0, history: [] };
+
+    let maxOvers = 2;
+    let maxWickets = 2;
+
+    function startMatch() {
+      maxOvers = parseInt(document.getElementById('maxOvers').value);
+      maxWickets = parseInt(document.getElementById('maxWickets').value);
+
+      document.getElementById('configArea').classList.add('hidden');
+      document.getElementById('teamsArea').classList.remove('hidden');
+
+      document.getElementById('controls1').style.display = 'block';
+      document.getElementById('controls2').style.display = 'none';
+    }
+
+    function addRun(r) {
+      let team = currentTeam === 1 ? team1 : team2;
+      team.runs += r;
+      team.balls++;
+      team.history.push({ runs: r, wickets: 0, type: "run", ball: 1 });
+      updateDisplay();
+      checkInningsEnd();
+    }
+
+    function addWide() {
+      let team = currentTeam === 1 ? team1 : team2;
+      team.runs += 1;
+      team.history.push({ runs: 1, wickets: 0, type: "wide", ball: 0 });
+      updateDisplay();
+      checkInningsEnd();
+    }
+
+    function addNoBall() {
+      let team = currentTeam === 1 ? team1 : team2;
+      team.runs += 1;
+      team.history.push({ runs: 1, wickets: 0, type: "noBall", ball: 0 });
+      updateDisplay();
+      checkInningsEnd();
+    }
+
+    function addWicket() {
+      let team = currentTeam === 1 ? team1 : team2;
+      team.wickets++;
+      team.balls++;
+      team.history.push({ runs: 0, wickets: 1, type: "wicket", ball: 1 });
+      updateDisplay();
+      checkInningsEnd();
+    }
+
+    function undo() {
+      let team = currentTeam === 1 ? team1 : team2;
+      if (team.history.length > 0) {
+        let last = team.history.pop();
+        team.runs -= last.runs;
+        team.wickets -= last.wickets;
+        team.balls -= last.ball;
+        updateDisplay();
+      }
+    }
+
+    function updateDisplay() {
+      document.getElementById('runs1').innerText = team1.runs;
+      document.getElementById('wickets1').innerText = team1.wickets;
+      document.getElementById('overs1').innerText = `${Math.floor(team1.balls/6)}.${team1.balls%6}`;
+
+      document.getElementById('runs2').innerText = team2.runs;
+      document.getElementById('wickets2').innerText = team2.wickets;
+      document.getElementById('overs2').innerText = `${Math.floor(team2.balls/6)}.${team2.balls%6}`;
+    }
+
+    function checkInningsEnd() {
+      let team = currentTeam === 1 ? team1 : team2;
+      let overs = Math.floor(team.balls / 6);
+
+      if (currentTeam === 2 && team2.runs > team1.runs) {
+        document.getElementById('controls2').style.display = 'none';
+        showResult("Team 2 won by chasing!");
+        return;
+      }
+
+      if (overs >= maxOvers || team.wickets >= maxWickets) {
+        if (currentTeam === 1) {
+          currentTeam = 2;
+          alert("Team 1 innings over. Start Team 2 innings!");
+          document.getElementById('controls1').style.display = 'none';
+          document.getElementById('controls2').style.display = 'block';
+        } else {
+          document.getElementById('controls2').style.display = 'none';
+          showResult();
+        }
+      }
+    }
+
+    function showResult(overrideText = "") {
+      document.getElementById('resultArea').classList.remove('hidden');
+
+      let text = "";
+      if (overrideText) {
+        text = overrideText;
+      } else if (team1.runs > team2.runs) {
+        text = `Team 1 won by ${team1.runs - team2.runs} runs!`;
+      } else if (team2.runs > team1.runs) {
+        text = `Team 2 won by ${maxWickets - team2.wickets} wickets!`;
+      } else {
+        text = `It's a Tie!`;
+      }
+      document.getElementById('resultText').innerText = text;
+
+      confetti();
+    }
+
+    function confetti() {
+      const duration = 2 * 1000;
+      const end = Date.now() + duration;
+
+      (function frame() {
+        confettiLib({
+          particleCount: 5,
+          angle: 60,
+          spread: 55,
+          origin: { x: 0 }
+        });
+        confettiLib({
+          particleCount: 5,
+          angle: 120,
+          spread: 55,
+          origin: { x: 1 }
+        });
+
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      }());
+    }
+
+    function resetMatch() {
+      team1 = { runs: 0, wickets: 0, balls: 0, history: [] };
+      team2 = { runs: 0, wickets: 0, balls: 0, history: [] };
+      currentTeam = 1;
+
+      document.getElementById('teamsArea').classList.add('hidden');
+      document.getElementById('resultArea').classList.add('hidden');
+      document.getElementById('configArea').classList.remove('hidden');
+
+      updateDisplay();
+    }
+
+    window.onload = function() {
+      window.confettiLib = window.confetti;
+      document.getElementById('startButton').onclick = startMatch;
+    };
+  </script>
+</body>
+</html>
