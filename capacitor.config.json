@@ -1,0 +1,6 @@
+{
+  "appId": "com.example.cricketapp",
+  "appName": "Cricket Scoring App",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
