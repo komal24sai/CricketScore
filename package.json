@@ -1,0 +1,10 @@
+{
+  "name": "my-cricket-app",
+  "version": "1.0.0",
+  "description": "Cricket Score Tracking App",
+  "scripts": {
+    "start": "serve www"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

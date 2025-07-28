@@ -1,0 +1,87 @@
+body {
+  font-family: 'Poppins', sans-serif;
+  background: #f0f4f8;
+  margin: 0;
+  padding: 20px;
+  color: #333;
+}
+
+.container {
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  text-align: center;
+  color: #2c3e50;
+}
+
+.teams {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.team-card {
+  background: #e8f4fd;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+#team2 {
+  background: #e9fdf0;
+}
+
+.score-board p {
+  margin: 5px 0;
+}
+
+.timeline {
+  margin-top: 10px;
+  font-size: 18px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.controls, .actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+button {
+  padding: 10px 16px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  background: #3498db;
+  color: white;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background: #2980b9;
+}
+
+.actions button {
+  background: #2ecc71;
+}
+
+.actions button:hover {
+  background: #27ae60;
+}
+
+#result {
+  margin-top: 20px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 20px;
+}
