@@ -2,249 +2,283 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Mobile Cricket Scorer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cricket Scoreboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet"/>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      text-align: center;
-      background: #f9f9f9;
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: #f1f5f9;
+      color: #111;
+      padding: 1rem;
     }
+
     h1 {
-      margin-bottom: 10px;
+      text-align: center;
+      margin-bottom: 1rem;
     }
-    .config, .result {
-      margin: 20px 0;
-    }
-    .teams {
+
+    .container {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 2rem;
     }
-    .team {
-      background: #fff;
-      border: 2px solid #007bff;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+
+    .team-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
     }
+
+    .team-1 {
+      border-left: 6px solid #1d4ed8;
+    }
+
+    .team-2 {
+      border-left: 6px solid #10b981;
+    }
+
+    .team-header {
+      font-size: 1.5rem;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+    }
+
     .score {
-      font-size: 32px;
-      margin: 10px 0;
+      font-size: 1.3rem;
+      font-weight: bold;
+      margin: 0.5rem 0;
     }
-    .overs {
-      font-size: 20px;
-    }
-    .button-group {
+
+    .timeline {
+      font-size: 1rem;
       display: flex;
       flex-wrap: wrap;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 15px;
+      gap: 0.5rem;
     }
+
+    .timeline span {
+      padding: 6px 10px;
+      background-color: #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
     button {
       flex: 1 1 30%;
-      padding: 18px;
-      font-size: 22px;
+      padding: 0.75rem;
       border: none;
-      border-radius: 6px;
+      border-radius: 10px;
+      font-size: 1.2rem;
+      font-weight: 600;
       cursor: pointer;
+      transition: 0.3s;
     }
-    .run-btn { background: #e2e6ea; }
-    .big-hit { background: #28a745; color: #fff; }
-    .wicket-btn { background: #dc3545; color: #fff; }
-    .wide-btn, .no-ball-btn { background: #ffc107; }
-    .result h2 { font-size: 26px; }
-    .hidden { display: none; }
+
+    button:hover:enabled {
+      opacity: 0.9;
+      transform: scale(1.03);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-run { background: #38bdf8; color: white; }
+    .btn-four, .btn-six { background: #22c55e; color: white; }
+    .btn-wicket { background: #ef4444; color: white; }
+    .btn-wide, .btn-noball { background: #facc15; }
+    .btn-zero { background: #cbd5e1; }
+    .btn-start { background: #6366f1; color: white; }
+    .btn-restart { background: #f97316; color: white; }
+    
+    .setup {
+      margin-bottom: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    input {
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 100%;
+    }
+
+    @media (min-width: 768px) {
+      .container {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+
+      .team-card {
+        width: 48%;
+      }
+
+      .controls {
+        flex-wrap: nowrap;
+      }
+    }
   </style>
 </head>
 <body>
-  <h1>🏏 Mobile Cricket Scorer</h1>
 
-  <!-- Config -->
-  <div class="config" id="configArea">
-    <label>Max Overs:</label>
-    <input type="number" id="maxOvers" value="2" min="1" max="50" style="font-size: 18px;"> &nbsp;&nbsp;
-    <label>Max Wickets:</label>
-    <input type="number" id="maxWickets" value="2" min="1" max="10" style="font-size: 18px;">
-    <br><br>
-    <button id="startButton" class="run-btn" style="width: 80%; font-size: 24px;">Start Match</button>
+  <h1>🏏 Live Cricket Scoreboard</h1>
+
+  <div class="setup">
+    <label>Overs: <input type="number" id="overs" min="1" value="2"/></label>
+    <label>Wickets: <input type="number" id="wickets" min="1" value="2"/></label>
+    <button class="btn-start" id="startBtn" onclick="startMatch()">Start Match</button>
+    <button class="btn-restart" onclick="restartMatch()">Restart Match</button>
   </div>
 
-  <!-- Scoreboard -->
-  <div class="teams hidden" id="teamsArea">
-    <!-- Team 1 -->
-    <div class="team">
-      <h2>Team 1</h2>
-      <div class="score">Runs: <span id="runs1">0</span> | Wickets: <span id="wickets1">0</span></div>
-      <div class="overs">Overs: <span id="overs1">0.0</span></div>
-      <div id="controls1" class="button-group">
-        <button onclick="addRun(0)" class="run-btn">0</button>
-        <button onclick="addRun(1)" class="run-btn">1</button>
-        <button onclick="addRun(2)" class="run-btn">2</button>
-        <button onclick="addRun(3)" class="run-btn">3</button>
-        <button onclick="addRun(4)" class="big-hit">4</button>
-        <button onclick="addRun(6)" class="big-hit">6</button>
-        <button onclick="addWide()" class="wide-btn">Wide</button>
-        <button onclick="addNoBall()" class="no-ball-btn">No Ball</button>
-        <button onclick="addWicket()" class="wicket-btn">Wicket</button>
-        <button onclick="undo()" class="run-btn">Undo</button>
-      </div>
+  <div class="container">
+    <div class="team-card team-1">
+      <div class="team-header">Team 1 <span id="score1">0 / 0</span></div>
+      <div class="timeline" id="timeline1"></div>
     </div>
-
-    <!-- Team 2 -->
-    <div class="team">
-      <h2>Team 2</h2>
-      <div class="score">Runs: <span id="runs2">0</span> | Wickets: <span id="wickets2">0</span></div>
-      <div class="overs">Overs: <span id="overs2">0.0</span></div>
-      <div id="controls2" class="button-group">
-        <button onclick="addRun(0)" class="run-btn">0</button>
-        <button onclick="addRun(1)" class="run-btn">1</button>
-        <button onclick="addRun(2)" class="run-btn">2</button>
-        <button onclick="addRun(3)" class="run-btn">3</button>
-        <button onclick="addRun(4)" class="big-hit">4</button>
-        <button onclick="addRun(6)" class="big-hit">6</button>
-        <button onclick="addWide()" class="wide-btn">Wide</button>
-        <button onclick="addNoBall()" class="no-ball-btn">No Ball</button>
-        <button onclick="addWicket()" class="wicket-btn">Wicket</button>
-        <button onclick="undo()" class="run-btn">Undo</button>
-      </div>
+    <div class="team-card team-2">
+      <div class="team-header">Team 2 <span id="score2">0 / 0</span></div>
+      <div class="timeline" id="timeline2"></div>
     </div>
   </div>
 
-  <!-- Result -->
-  <div class="result hidden" id="resultArea">
-    <h2 id="resultText"></h2>
-    <button onclick="resetMatch()" class="run-btn" style="width: 80%; font-size: 24px;">Play Again</button>
+  <div class="controls">
+    <button class="btn-run" onclick="addScore(1)">1️⃣</button>
+    <button class="btn-run" onclick="addScore(2)">2️⃣</button>
+    <button class="btn-run" onclick="addScore(3)">3️⃣</button>
+    <button class="btn-zero" onclick="addScore(0)">0️⃣</button>
+    <button class="btn-four" onclick="addScore(4)">4️⃣</button>
+    <button class="btn-six" onclick="addScore(6)">6️⃣</button>
+    <button class="btn-wide" onclick="addExtra('wide')">⛔ Wide</button>
+    <button class="btn-noball" onclick="addExtra('noball')">⚠️ No Ball</button>
+    <button class="btn-wicket" onclick="addWicket()">🟥 Wicket</button>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script>
     let currentTeam = 1;
-    let team1 = { runs: 0, wickets: 0, balls: 0, history: [] };
-    let team2 = { runs: 0, wickets: 0, balls: 0, history: [] };
-    let maxOvers = 2;
-    let maxWickets = 2;
+    let oversLimit = 2;
+    let wicketsLimit = 2;
+    let matchStarted = false;
+    let matchEnded = false;
+
+    const teamStats = {
+      1: { runs: 0, wickets: 0, balls: 0, timeline: [] },
+      2: { runs: 0, wickets: 0, balls: 0, timeline: [] }
+    };
 
     function startMatch() {
-      maxOvers = parseInt(document.getElementById('maxOvers').value);
-      maxWickets = parseInt(document.getElementById('maxWickets').value);
-      document.getElementById('configArea').classList.add('hidden');
-      document.getElementById('teamsArea').classList.remove('hidden');
-      document.getElementById('controls1').style.display = 'flex';
-      document.getElementById('controls2').style.display = 'none';
-    }
-
-    function addRun(r) {
-      let team = currentTeam === 1 ? team1 : team2;
-      team.runs += r;
-      team.balls++;
-      team.history.push({ runs: r, wickets: 0, ball: 1 });
-      updateDisplay();
-      checkInningsEnd();
-    }
-
-    function addWide() {
-      let team = currentTeam === 1 ? team1 : team2;
-      team.runs += 1;
-      team.history.push({ runs: 1, wickets: 0, ball: 0 });
-      updateDisplay();
-      checkInningsEnd();
-    }
-
-    function addNoBall() {
-      let team = currentTeam === 1 ? team1 : team2;
-      team.runs += 1;
-      team.history.push({ runs: 1, wickets: 0, ball: 0 });
-      updateDisplay();
-      checkInningsEnd();
-    }
-
-    function addWicket() {
-      let team = currentTeam === 1 ? team1 : team2;
-      team.wickets++;
-      team.balls++;
-      team.history.push({ runs: 0, wickets: 1, ball: 1 });
-      updateDisplay();
-      checkInningsEnd();
-    }
-
-    function undo() {
-      let team = currentTeam === 1 ? team1 : team2;
-      if (team.history.length > 0) {
-        let last = team.history.pop();
-        team.runs -= last.runs;
-        team.wickets -= last.wickets;
-        team.balls -= last.ball;
-        updateDisplay();
+      if (matchEnded) {
+        alert("Match has ended. Please restart to begin a new match.");
+        return;
       }
+      oversLimit = parseInt(document.getElementById('overs').value);
+      wicketsLimit = parseInt(document.getElementById('wickets').value);
+      matchStarted = true;
+      document.getElementById("startBtn").disabled = true;
+      alert("Match started!");
+    }
+
+    function restartMatch() {
+      location.reload();
     }
 
     function updateDisplay() {
-      document.getElementById('runs1').innerText = team1.runs;
-      document.getElementById('wickets1').innerText = team1.wickets;
-      document.getElementById('overs1').innerText = `${Math.floor(team1.balls/6)}.${team1.balls%6}`;
-      document.getElementById('runs2').innerText = team2.runs;
-      document.getElementById('wickets2').innerText = team2.wickets;
-      document.getElementById('overs2').innerText = `${Math.floor(team2.balls/6)}.${team2.balls%6}`;
+      document.getElementById('score1').textContent = `${teamStats[1].runs} / ${teamStats[1].wickets}`;
+      document.getElementById('score2').textContent = `${teamStats[2].runs} / ${teamStats[2].wickets}`;
+      document.getElementById('timeline1').innerHTML = teamStats[1].timeline.map(s => `<span>${s}</span>`).join('');
+      document.getElementById('timeline2').innerHTML = teamStats[2].timeline.map(s => `<span>${s}</span>`).join('');
     }
 
-    function checkInningsEnd() {
-      let team = currentTeam === 1 ? team1 : team2;
-      let overs = Math.floor(team.balls / 6);
-      if (currentTeam === 2 && team2.runs > team1.runs) {
-        document.getElementById('controls2').style.display = 'none';
-        showResult("Team 2 won by chasing!");
+    function totalBallsAllowed() {
+      return oversLimit * 6;
+    }
+
+    function addScore(runs) {
+      if (!matchStarted || matchEnded) return alert("Match not active.");
+      const team = teamStats[currentTeam];
+      team.runs += runs;
+      team.balls++;
+      team.timeline.push(`${runs}️⃣`);
+      checkInnings();
+    }
+
+    function addWicket() {
+      if (!matchStarted || matchEnded) return alert("Match not active.");
+      const team = teamStats[currentTeam];
+      team.wickets++;
+      team.balls++;
+      team.timeline.push("🟥");
+      checkInnings();
+    }
+
+    function addExtra(type) {
+      if (!matchStarted || matchEnded) return alert("Match not active.");
+      const team = teamStats[currentTeam];
+      team.runs += 1;
+      team.timeline.push(type === 'wide' ? "⛔" : "⚠️");
+      updateDisplay();
+    }
+
+    function checkInnings() {
+      const team = teamStats[currentTeam];
+      updateDisplay();
+
+      const ballsUsed = team.balls;
+      const maxBalls = totalBallsAllowed();
+      const isAllOut = team.wickets >= wicketsLimit;
+      const isOversUp = ballsUsed >= maxBalls;
+
+      if (currentTeam === 1 && (isAllOut || isOversUp)) {
+        currentTeam = 2;
+        alert("Team 2 batting now!");
         return;
       }
-      if (overs >= maxOvers || team.wickets >= maxWickets) {
-        if (currentTeam === 1) {
-          currentTeam = 2;
-          alert("Team 1 innings over. Start Team 2 innings!");
-          document.getElementById('controls1').style.display = 'none';
-          document.getElementById('controls2').style.display = 'flex';
-        } else {
-          document.getElementById('controls2').style.display = 'none';
-          showResult();
+
+      if (currentTeam === 2) {
+        const target = teamStats[1].runs + 1;
+        if (team.runs >= target) {
+          alert("🎉 Team 2 Wins!");
+          endMatch();
+          return;
+        }
+
+        if (isAllOut || isOversUp) {
+          const team1Score = teamStats[1].runs;
+          const team2Score = teamStats[2].runs;
+
+          const result =
+            team2Score > team1Score ? "🎉 Team 2 Wins!" :
+            team2Score < team1Score ? "🏆 Team 1 Wins!" :
+            "🤝 Match Drawn!";
+          alert(result);
+          endMatch();
+          return;
         }
       }
     }
 
-    function showResult(msg = "") {
-      document.getElementById('resultArea').classList.remove('hidden');
-      let text = msg || (team1.runs > team2.runs
-        ? `Team 1 won by ${team1.runs - team2.runs} runs!`
-        : team2.runs > team1.runs
-        ? `Team 2 won by ${maxWickets - team2.wickets} wickets!`
-        : "It's a Tie!");
-      document.getElementById('resultText').innerText = text;
-      confetti();
+    function endMatch() {
+      matchStarted = false;
+      matchEnded = true;
+      document.getElementById("startBtn").disabled = true;
     }
-
-    function confetti() {
-      const end = Date.now() + 2 * 1000;
-      (function frame() {
-        confettiLib({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
-        confettiLib({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
-        if (Date.now() < end) requestAnimationFrame(frame);
-      })();
-    }
-
-    function resetMatch() {
-      team1 = { runs: 0, wickets: 0, balls: 0, history: [] };
-      team2 = { runs: 0, wickets: 0, balls: 0, history: [] };
-      currentTeam = 1;
-      document.getElementById('teamsArea').classList.add('hidden');
-      document.getElementById('resultArea').classList.add('hidden');
-      document.getElementById('configArea').classList.remove('hidden');
-      updateDisplay();
-    }
-
-    window.onload = () => {
-      window.confettiLib = window.confetti;
-      document.getElementById('startButton').onclick = startMatch;
-    };
   </script>
+
 </body>
 </html>
