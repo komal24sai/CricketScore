@@ -89,6 +89,18 @@
         .team-header { display: flex; justify-content: space-between; align-items: baseline; }
         .team-header .score { font-size: clamp(1.75rem, 6vw, 2.25rem); font-weight: 700; }
         .pro-details { font-size: 0.9rem; color: var(--text-light); display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+        .run-rate-details {
+            font-size: 0.9rem;
+            color: var(--text-dark);
+            display: flex;
+            justify-content: space-around;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background-color: var(--bg-light);
+            border-radius: 8px;
+            font-weight: 600;
+        }
         .timeline {
             display: flex; flex-wrap: wrap; gap: 0.5rem;
             margin-top: 1.5rem; padding-top: 1.5rem;
@@ -136,7 +148,7 @@
         /* --- MODALS --- */
         .modal { display:none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); justify-content: center; align-items: center; z-index: 100; animation: fadeIn 0.3s ease; padding: 1rem; }
         .modal-content { position: relative; background: white; padding: var(--fluid-padding); border-radius: 12px; text-align: center; width: 100%; max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; animation: slideIn 0.3s ease-out; }
-        #input-wagon-wheel-modal .modal-content, #batsman-wagon-wheel-modal .modal-content { max-width: 400px; }
+        #input-wagon-wheel-modal .modal-content, #batsman-wagon-wheel-modal .modal-content { max-width: 380px; }
         .close-modal-btn {
             position: absolute;
             top: 8px;
@@ -157,6 +169,7 @@
         .batsman-list .player-name.clickable:hover { color: var(--primary-hover); }
         .batsman-list .player-status { font-style: italic; color: var(--text-light); font-size: 0.9rem; }
         .batsman-list .player-score { font-weight: bold; text-align: right; }
+        canvas { width: 100%; height: auto; aspect-ratio: 3 / 4; }
         
         /* --- ANIMATIONS & RESPONSIVENESS --- */
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -243,6 +256,9 @@ Starc</textarea>
                 <div><b>On Strike:</b> <span id="batsman1-strike">-</span>*</div>
                 <div><b>Non-Striker:</b> <span id="batsman1-nonstrike">-</span></div>
             </div>
+            <div class="run-rate-details" id="run-rate-1" style="display:none;">
+                <div>CRR: <span id="crr-team1">0.00</span></div>
+            </div>
             <div class="timeline" id="timeline1"></div>
             <div class="controls" id="controls-1" style="display: none;"></div>
         </div>
@@ -254,7 +270,10 @@ Starc</textarea>
             <div class="pro-details" id="pro-details2" style="display:none;">
                 <div><b>On Strike:</b> <span id="batsman2-strike">-</span>*</div>
                 <div><b>Non-Striker:</b> <span id="batsman2-nonstrike">-</span></div>
-                <div id="runs-to-win-container" style="display:none; font-weight: bold; color: var(--danger-color); margin-top: 0.5rem;"><span id="runs-to-win"></span></div>
+            </div>
+            <div class="run-rate-details" id="run-rate-2" style="display:none;">
+                <div>CRR: <span id="crr-team2">0.00</span></div>
+                <div>RRR: <span id="rrr-team2">-</span></div>
             </div>
             <div class="timeline" id="timeline2"></div>
             <div class="controls" id="controls-2" style="display: none;"></div>
@@ -262,7 +281,8 @@ Starc</textarea>
     </div>
     
     <div id="summary" class="card" style="display: none;">
-        <span id="summary-text"></span>
+        <h3 id="summary-text" class="text-2xl font-bold"></h3>
+        <p id="nrr-text" class="text-slate-600 mt-2"></p>
         <button id="new-match-btn" class="btn-start" style="display:none; margin-top: 1rem; width: 100%;" onclick="resetApp()">Start New Match</button>
     </div>
 
@@ -270,7 +290,7 @@ Starc</textarea>
         <div class="modal-content">
             <button class="close-modal-btn" onclick="cancelShot()">×</button>
             <h3>Where did the ball go?</h3>
-            <canvas id="wagon-wheel-input-canvas" width="300" height="400"></canvas>
+            <canvas id="wagon-wheel-input-canvas"></canvas>
             <p><button class="btn-wicket" onclick="cancelShot()" style="margin-top: 1rem;">Cancel</button></p>
         </div>
     </div>
@@ -297,7 +317,7 @@ Starc</textarea>
         <div class="modal-content">
             <button class="close-modal-btn" onclick="closeBatsmanWagonWheel()">×</button>
             <h3 id="batsman-wagon-wheel-title"></h3>
-            <canvas id="batsman-wagon-wheel-canvas" width="300" height="400"></canvas>
+            <canvas id="batsman-wagon-wheel-canvas"></canvas>
             <p><button class="btn-wicket" onclick="closeBatsmanWagonWheel()" style="margin-top: 1rem;">Close</button></p>
         </div>
     </div>
@@ -444,24 +464,45 @@ Starc</textarea>
         }
     }
     function updateDisplay() {
+        if (!matchStarted) return; // Prevent updates before match starts
+
         document.getElementById('team1-header').textContent = teamStats[1].name;
         document.getElementById('team2-header').textContent = teamStats[2].name;
         document.getElementById('score1').textContent = `${teamStats[1].runs} / ${teamStats[1].wickets}`;
         document.getElementById('score2').textContent = `${teamStats[2].runs} / ${teamStats[2].wickets}`;
         document.getElementById('timeline1').innerHTML = teamStats[1].timeline.map(s => `<span>${s}</span>`).join('');
         document.getElementById('timeline2').innerHTML = teamStats[2].timeline.map(s => `<span>${s}</span>`).join('');
+        
+        const runRate1Div = document.getElementById('run-rate-1');
+        const runRate2Div = document.getElementById('run-rate-2');
+        
+        if (runRate1Div && runRate2Div) {
+            if (currentTeam === 1) {
+                runRate1Div.style.display = 'flex';
+                runRate2Div.style.display = 'none';
+                document.getElementById('crr-team1').textContent = teamStats[1].balls > 0 ? ((teamStats[1].runs / teamStats[1].balls) * 6).toFixed(2) : '0.00';
+            } else {
+                runRate1Div.style.display = 'none';
+                runRate2Div.style.display = 'flex';
+                document.getElementById('crr-team2').textContent = teamStats[2].balls > 0 ? ((teamStats[2].runs / teamStats[2].balls) * 6).toFixed(2) : '0.00';
+                const target = teamStats[1].runs + 1;
+                const runsNeeded = target - teamStats[2].runs;
+                const ballsRemaining = (oversLimit * 6) - teamStats[2].balls;
+                if (runsNeeded <= 0) {
+                    document.getElementById('rrr-team2').textContent = '0.00';
+                } else if (ballsRemaining <= 0) {
+                    document.getElementById('rrr-team2').textContent = '---';
+                } else {
+                    document.getElementById('rrr-team2').textContent = ((runsNeeded / ballsRemaining) * 6).toFixed(2);
+                }
+            }
+        }
+
         if (matchMode === 'pro') {
             document.getElementById('batsman1-strike').textContent = teamStats[1].onStrike?.name || '-';
             document.getElementById('batsman1-nonstrike').textContent = teamStats[1].nonStriker?.name || '-';
             document.getElementById('batsman2-strike').textContent = teamStats[2].onStrike?.name || '-';
             document.getElementById('batsman2-nonstrike').textContent = teamStats[2].nonStriker?.name || '-';
-            const rrrContainer = document.getElementById('runs-to-win-container');
-            if (currentTeam === 2) {
-                const target = teamStats[1].runs + 1;
-                const runsNeeded = target - teamStats[2].runs;
-                rrrContainer.style.display = 'block';
-                document.getElementById('runs-to-win').textContent = runsNeeded > 0 ? `${runsNeeded} runs to win` : 'Match Won!';
-            } else { rrrContainer.style.display = 'none'; }
             updateScorecardDisplay();
         }
         updateControlState();
@@ -503,7 +544,8 @@ Starc</textarea>
         if (matchMode === 'pro') {
             const outPlayer = team.players.find(p => p.name === outPlayerName);
             if (outPlayer) { outPlayer.status = `out (${outPlayer.runs}/${outPlayer.balls})`; }
-            const nextPlayer = team.players.find(p => p.status === 'not out');
+            
+            const nextPlayer = team.players.find(p => p.status === 'not out' && p !== team.nonStriker);
             team.onStrike = nextPlayer ? nextPlayer : null;
             if(nextPlayer) nextPlayer.status = 'batting';
         }
@@ -530,7 +572,7 @@ Starc</textarea>
                     striker.balls--;
                     if(lastAction.wasWagonShot) striker.shots.pop();
                 }
-                if (lastAction.runs % 2 !== 0) { // Revert strike rotation
+                if (lastAction.runs % 2 !== 0) {
                     const temp = team.onStrike;
                     team.onStrike = team.nonStriker;
                     team.nonStriker = temp;
@@ -541,7 +583,7 @@ Starc</textarea>
             team.balls--;
             if (matchMode === 'pro' && lastAction.outPlayerName) {
                  const outPlayer = team.players.find(p => p.name === lastAction.outPlayerName);
-                 if(outPlayer) outPlayer.status = 'batting'; // Revert status
+                 if(outPlayer) outPlayer.status = 'batting'; 
                  team.onStrike = lastAction.prevOnStrike;
                  team.nonStriker = lastAction.prevNonStrike;
             }
@@ -553,8 +595,9 @@ Starc</textarea>
     
     function recordShot(event) {
         const rect = wagonWheelCanvas.getBoundingClientRect();
-        const x = (event.clientX - rect.left) * (wagonWheelCanvas.width / rect.width);
-        const y = (event.clientY - rect.top) * (wagonWheelCanvas.height / rect.height);
+        const ratioX = (event.clientX - rect.left) / rect.width;
+        const ratioY = (event.clientY - rect.top) / rect.height;
+
         const team = teamStats[currentTeam];
         const striker = team.onStrike;
         team.runs += tempRuns;
@@ -563,7 +606,7 @@ Starc</textarea>
         if(striker){ 
             striker.runs += tempRuns; 
             striker.balls++; 
-            striker.shots.push({runs: tempRuns, shotX: x, shotY: y});
+            striker.shots.push({runs: tempRuns, shotRatioX: ratioX, shotRatioY: ratioY});
         }
         team.history.push({ type: 'run', runs: tempRuns, strikerName: striker?.name, wasWagonShot: true });
         if (tempRuns % 2 !== 0) {
@@ -589,26 +632,71 @@ Starc</textarea>
         const title = document.getElementById('batsman-wagon-wheel-title');
         title.textContent = `${player.name}'s Wagon Wheel`;
         modal.style.display = 'flex';
+        
         drawField(canvas);
         const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+
         if(player.shots && player.shots.length > 0){
             player.shots.forEach(shot => {
-                // The input canvas is 300x400. We scale the shot coordinates to the display canvas size.
-                const scaledX = shot.shotX * (canvas.width / 300);
-                const scaledY = shot.shotY * (canvas.height / 400);
-                drawShot(ctx, scaledX, scaledY, shot.runs);
+                let finalX = shot.shotRatioX * w;
+                let finalY = shot.shotRatioY * h;
+                
+                const centerX = w / 2;
+                const centerY = h / 2;
+                const radiusX = w * 0.47;
+                const radiusY = h * 0.48;
+                const startX = w / 2;
+                const startY = h * 0.8;
+                
+                const dx = finalX - startX;
+                const dy = finalY - startY;
+
+                const ellipseCheckDx = finalX - centerX;
+                const ellipseCheckDy = finalY - centerY;
+
+                if ((ellipseCheckDx**2 / radiusX**2) + (ellipseCheckDy**2 / radiusY**2) > 1) {
+                    const m = dy / dx;
+                    if (Math.abs(dx) < 1e-9) {
+                        finalX = startX;
+                        finalY = centerY - radiusY * Math.sqrt(1 - ((startX-centerX)**2 / radiusX**2));
+                    } else {
+                        const c = startY - m * startX;
+                        const a = radiusY**2 + radiusX**2 * m**2;
+                        const b = 2 * radiusX**2 * m * (c - centerY) - 2 * radiusY**2 * centerX;
+                        const C = radiusY**2 * centerX**2 + radiusX**2 * (c - centerY)**2 - radiusX**2 * radiusY**2;
+                        const discriminant = Math.sqrt(b**2 - 4*a*C);
+                        const x1 = (-b + discriminant) / (2*a);
+                        const y1 = m*x1 + c;
+                        const x2 = (-b - discriminant) / (2*a);
+                        const y2 = m*x2 + c;
+                        
+                        const clickIsRight = dx > 0;
+                        const point1IsRight = (x1 - startX) > 0;
+
+                        if (clickIsRight === point1IsRight) {
+                            finalX = x1;
+                            finalY = y1;
+                        } else {
+                            finalX = x2;
+                            finalY = y2;
+                        }
+                    }
+                }
+                
+                drawShot(ctx, finalX, finalY, shot.runs);
             });
         } else {
             ctx.font = "16px Inter";
             ctx.fillStyle = "rgba(0,0,0,0.5)";
             ctx.textAlign = "center";
-            ctx.fillText("No wagon wheel shots recorded.", canvas.width / 2, canvas.height / 2);
+            ctx.fillText("No shots recorded.", w / 2, h / 2);
         }
     }
     function closeBatsmanWagonWheel() { document.getElementById('batsman-wagon-wheel-modal').style.display = 'none'; }
 
     function drawField(canvas) {
-        // This function now also sets canvas resolution based on display size for clarity
         const rect = canvas.getBoundingClientRect();
         canvas.width = rect.width;
         canvas.height = rect.height;
@@ -618,18 +706,15 @@ Starc</textarea>
         const h = canvas.height;
         ctx.clearRect(0, 0, w, h);
 
-        // Field
         ctx.beginPath();
         ctx.ellipse(w / 2, h / 2, w * 0.47, h * 0.48, Math.PI, 0, 2 * Math.PI);
         ctx.fillStyle = '#dcfce7'; ctx.fill();
         ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 2; ctx.stroke();
         
-        // Pitch
         const pitchWidth = w * 0.12;
         ctx.fillStyle = '#fde68a';
         ctx.fillRect((w - pitchWidth) / 2, h * 0.1, pitchWidth, h * 0.8);
         
-        // Crease
         ctx.beginPath();
         ctx.moveTo((w - pitchWidth) / 2, h * 0.8);
         ctx.lineTo((w + pitchWidth) / 2, h * 0.8);
@@ -643,28 +728,25 @@ Starc</textarea>
         const startX = w / 2;
         const startY = h * 0.8;
         
-        let shotColor = '#38bdf8'; // 1s, 2s, 3s
-        let lineDash = [];
-        if (runs === 4) { shotColor = '#22c55e'; } // 4s
-        else if (runs === 6) { shotColor = '#8b5cf6'; } // 6s
+        let shotColor = '#38bdf8';
+        if (runs === 4) { shotColor = '#22c55e'; }
+        else if (runs === 6) { shotColor = '#8b5cf6'; }
 
-        // Line Style
         ctx.strokeStyle = shotColor;
         ctx.lineWidth = 2.5;
-        ctx.shadowColor = shotColor;
-        ctx.shadowBlur = 8;
-        
-        // Draw Line
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 2;
+
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(x, y);
         ctx.stroke();
         ctx.restore();
 
-        // Draw Ball Icon
         drawBallIcon(ctx, x, y);
 
-        // Draw Text Background Circle
         ctx.save();
         ctx.beginPath();
         ctx.arc(x, y, 9, 0, 2 * Math.PI);
@@ -674,7 +756,6 @@ Starc</textarea>
         ctx.fill();
         ctx.restore();
 
-        // Draw Runs Text
         ctx.font = "bold 11px Inter";
         ctx.fillStyle = "white";
         ctx.textAlign = "center";
@@ -706,7 +787,8 @@ Starc</textarea>
     function checkInnings() {
         updateDisplay();
         const team = teamStats[currentTeam];
-        const isAllOut = team.wickets >= wicketsLimit || (matchMode === 'pro' && team.players.filter(p => p.status === 'not out').length < 2);
+        const availablePlayers = matchMode === 'pro' ? team.players.filter(p => p.status === 'not out' || p.status === 'batting').length : 11;
+        const isAllOut = team.wickets >= wicketsLimit || (matchMode === 'pro' && availablePlayers < 2);
         const isOversUp = team.balls >= oversLimit * 6;
         if (currentTeam === 1 && (isAllOut || isOversUp)) {
             currentTeam = 2;
@@ -725,6 +807,11 @@ Starc</textarea>
         matchEnded = true;
         document.getElementById('new-match-btn').style.display = 'block';
         updateControlState();
+
+        const teamA_RR = teamStats[1].balls > 0 ? (teamStats[1].runs / (teamStats[1].balls / 6)) : 0;
+        const teamB_RR = teamStats[2].balls > 0 ? (teamStats[2].runs / (teamStats[2].balls / 6)) : 0;
+        const nrr = (teamA_RR - teamB_RR).toFixed(3);
+        document.getElementById('nrr-text').textContent = `Net Run Rate: ${nrr}`;
     }
     function showSummary(result) {
         document.getElementById("summary-text").textContent = result;
